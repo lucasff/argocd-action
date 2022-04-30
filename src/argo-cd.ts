@@ -1,10 +1,10 @@
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
-import * as tc from '@actions/tool-cache';
-import {createActionAuth} from '@octokit/auth-action';
-import {Octokit} from '@octokit/rest';
+import * as toolCache from '@actions/tool-cache';
+import { createActionAuth } from '@octokit/auth-action';
+import { Octokit } from '@octokit/rest';
 
-import {existsSync, promises as fs} from 'fs';
+import { existsSync, promises as fs } from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as process from 'process';
@@ -27,27 +27,31 @@ enum Executable {
 }
 
 export default class ArgoCD {
-  private readonly path: string;
+  private readonly _path: string;
 
   private constructor(exePath: string) {
-    this.path = exePath;
+    this._path = exePath;
+  }
+
+  get path(): string {
+    return this._path;
   }
 
   static async getOrDownload(version: string): Promise<ArgoCD> {
-    const argoBinaryDirectory = tc.find('argocd', version);
+    const argoBinaryDirectory = toolCache.find('argocd', version);
     if (existsSync(argoBinaryDirectory)) {
       core.addPath(argoBinaryDirectory);
-      core.debug(`Found "argocd" executable at: ${argoBinaryDirectory}`);
+      core.debug(`[debug(argocd-action)] Found "argocd" executable at: ${argoBinaryDirectory}`);
       return new ArgoCD('argocd');
     } else {
-      core.debug('Unable to find "argocd" executable, downloading it now');
+      core.debug('[debug(argocd-action)] Unable to find "argocd" executable, downloading it now');
       return await ArgoCD.download(version);
     }
   }
 
   static async getExecutableUrl(version: string): Promise<string> {
     // If hitting GitHub API rate limit, add `GITHUB_TOKEN` to raise limit
-    const octoConfig = process.env.GITHUB_TOKEN ? {authStrategy: createActionAuth} : {};
+    const octoConfig = process.env.GITHUB_TOKEN ? { authStrategy: createActionAuth } : {};
     const octokit = new Octokit(octoConfig);
     const executable = Executable[PLATFORM];
 
@@ -68,11 +72,11 @@ export default class ArgoCD {
 
   // download executable for the appropriate platform
   static async download(version: string): Promise<ArgoCD> {
-    const exeutableUrl = await ArgoCD.getExecutableUrl(version);
-    core.debug(`[debug()] getExecutableUrl: ${exeutableUrl}`);
-    const assetPath = await tc.downloadTool(exeutableUrl, ASSET_DEST);
+    const executableUrl = await ArgoCD.getExecutableUrl(version);
+    core.debug(`[debug(argocd-action)] getExecutableUrl: ${executableUrl}`);
+    const assetPath = await toolCache.downloadTool(executableUrl, ASSET_DEST);
 
-    const cachedPath = await tc.cacheFile(assetPath, EXE_NAME, 'argocd', version);
+    const cachedPath = await toolCache.cacheFile(assetPath, EXE_NAME, 'argocd', version);
     core.addPath(cachedPath);
 
     const cachedBinaryPath = path.join(cachedPath, EXE_NAME);
@@ -87,7 +91,7 @@ export default class ArgoCD {
   }
 
   async call(args: string[], options?: Record<string, unknown>): Promise<number> {
-    return await exec.exec(this.path, args, options);
+    return await exec.exec(this._path, args, options);
   }
 
   // Call the cli and return stdout

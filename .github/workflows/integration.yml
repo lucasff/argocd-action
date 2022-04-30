@@ -34,8 +34,7 @@ jobs:
       - name: Show version
         uses: ./
         with:
-          command: version
-          options: --client
+          commands: version
 
       - name: Check install - should not re-download
         uses: ./
@@ -56,8 +55,7 @@ jobs:
           # Only required for first step in workflow where API is called
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          command: version
-          options: --client
+          commands: version
 
       - name: Check install - should not re-download
         uses: ./
@@ -82,5 +80,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           version: 1.8.0
-          command: version
-          options: --client
+          commands: version
